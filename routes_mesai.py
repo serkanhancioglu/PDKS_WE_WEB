@@ -1,16 +1,22 @@
 """
-Mesai Raporları
+Mesai Raporları - Orijinal Formüller
+Kaynak: Raporlar/04-Fazla Mesai.php, Hesap.inc
 """
 from flask import jsonify, request
 from datetime import datetime
-from hesap_fonksiyonlar import time_to_minute, dakika_to_saat, saat_hesapla
-
+from hesap_inc_full import time_to_minute, dakika_to_saat, saat_hesapla
 
 def register_mesai_routes(app, query_db, SCHEMA):
     
     @app.route('/api/fazla-mesai', methods=['GET'])
     def get_fazla_mesai():
-        """Fazla mesai raporu - Orijinal formül"""
+        """04 - Fazla Mesai Raporu - ORİJİNAL FORMÜL
+        
+        Orijinal mantık (Hesap.inc):
+        1. gunluk_hesap_bordrolar tablosundan bordro saatlerini al
+        2. bordroalanlari.bordrotipi = 5 ise FAZLA MESAİ
+        3. saat_hesapla() ile kesişim hesapla
+        """
         start = request.args.get('start', datetime.now().strftime('%Y-%m-%d'))
         end = request.args.get('end', datetime.now().strftime('%Y-%m-%d'))
         
@@ -42,18 +48,17 @@ def register_mesai_routes(app, query_db, SCHEMA):
         result = query_db(f'''
             SELECT 
                 TO_CHAR(h.tarih, 'DD.MM.YYYY') as tarih,
-                h.personelid as sicil_no,
-                p.adi || ' ' || p.soyadi as personel_adi,
-                TO_CHAR(h.girissaat, 'HH24:MI') as giris,
-                TO_CHAR(h.cikissaat, 'HH24:MI') as cikis,
+                h.personel_id as sicil_no,
+                TO_CHAR(h.giris_saat, 'HH24:MI') as giris,
+                TO_CHAR(h.cikis_saat, 'HH24:MI') as cikis,
                 v.gunlukhesapid
             FROM {SCHEMA}.hareketler h
-            LEFT JOIN {SCHEMA}.personel p ON h.personelid = p.id
+            LEFT JOIN {SCHEMA}.personel p ON h.personel_id = p.id
             LEFT JOIN {SCHEMA}.vardiyagruplari vg ON p.hesapgrupkodu = vg.id
             LEFT JOIN {SCHEMA}.vardiyalar v ON vg.id = v.vardiyaid
             WHERE h.tarih BETWEEN %s AND %s
-            AND h.girissaat IS NOT NULL
-            AND h.cikissaat IS NOT NULL
+            AND h.giris_saat IS NOT NULL
+            AND h.cikis_saat IS NOT NULL
             ORDER BY h.tarih DESC
         ''', (start, end))
         
@@ -87,9 +92,9 @@ def register_mesai_routes(app, query_db, SCHEMA):
                 
                 # Gece vardiyası düzeltmesi
                 if bordro_basla > bordro_bitis:
-                    bordro_bitis += 1440
+                    bordro_bitis += 1440  # +24 saat
                 
-                # saat_hesapla - orijinal formül
+                # saat_hesapla - orijinal formül (Hesap.inc)
                 kesisim = saat_hesapla(giris_int, cikis_int, bordro_basla, bordro_bitis)
                 
                 # Minimum süre kontrolü
@@ -101,7 +106,6 @@ def register_mesai_routes(app, query_db, SCHEMA):
                 fazla_mesailer.append({
                     'tarih': r.get('tarih', ''),
                     'sicil_no': str(r.get('sicil_no', '')),
-                    'personel_adi': r.get('personel_adi', ''),
                     'giris': giris,
                     'cikis': cikis,
                     'fazla_mesai': dakika_to_saat(toplam_fazla_mesai)
@@ -111,30 +115,26 @@ def register_mesai_routes(app, query_db, SCHEMA):
 
     @app.route('/api/gec-erken', methods=['GET'])
     def get_gec_erken():
-        """Geç gelme erken çıkma raporu"""
+        """07 - Gec Gelme Erken Cikma Raporu"""
         start = request.args.get('start', datetime.now().strftime('%Y-%m-%d'))
         end = request.args.get('end', datetime.now().strftime('%Y-%m-%d'))
-        
         result = query_db(f'''
             SELECT 
                 TO_CHAR(h.tarih, 'DD.MM.YYYY') as tarih,
-                h.personelid as sicil_no,
-                p.adi || ' ' || p.soyadi as personel_adi,
-                TO_CHAR(h.girissaat, 'HH24:MI') as giris,
-                TO_CHAR(h.cikissaat, 'HH24:MI') as cikis,
+                h.personel_id as sicil_no,
+                TO_CHAR(h.giris_saat, 'HH24:MI') as giris,
+                TO_CHAR(h.cikis_saat, 'HH24:MI') as cikis,
                 TO_CHAR(v.basla, 'HH24:MI') as mesai_baslangic,
                 TO_CHAR(v.bitis, 'HH24:MI') as mesai_bitis
             FROM {SCHEMA}.hareketler h
-            LEFT JOIN {SCHEMA}.personel p ON h.personelid = p.id
+            LEFT JOIN {SCHEMA}.personel p ON h.personel_id = p.id
             LEFT JOIN {SCHEMA}.vardiyagruplari vg ON p.hesapgrupkodu = vg.id
             LEFT JOIN {SCHEMA}.vardiyalar v ON vg.id = v.vardiyaid
             WHERE h.tarih BETWEEN %s AND %s
             ORDER BY h.tarih DESC
         ''', (start, end))
-        
         if not result:
             return jsonify([])
-        
         rapor = []
         for r in result:
             giris = r.get('giris', '')
@@ -143,28 +143,23 @@ def register_mesai_routes(app, query_db, SCHEMA):
             mesai_bitis = r.get('mesai_bitis', '')
             gec_gelme = ''
             erken_cikma = ''
-            
             if giris and mesai_baslangic:
                 giris_int = time_to_minute(giris)
                 baslangic_int = time_to_minute(mesai_baslangic)
                 if baslangic_int > 0 and giris_int > baslangic_int:
                     gec_gelme = dakika_to_saat(giris_int - baslangic_int)
-            
             if cikis and mesai_bitis:
                 cikis_int = time_to_minute(cikis)
                 bitis_int = time_to_minute(mesai_bitis)
                 if bitis_int > 0 and cikis_int < bitis_int:
                     erken_cikma = dakika_to_saat(bitis_int - cikis_int)
-            
             if gec_gelme or erken_cikma:
                 rapor.append({
                     'tarih': r.get('tarih', ''),
                     'sicil_no': str(r.get('sicil_no', '')),
-                    'personel_adi': r.get('personel_adi', ''),
                     'giris': giris,
                     'cikis': cikis,
                     'gec_gelme': gec_gelme,
                     'erken_cikma': erken_cikma
                 })
-        
         return jsonify(rapor)
