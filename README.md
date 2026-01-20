@@ -142,7 +142,7 @@ FROM '/path/to/hareketler.csv' DELIMITER ',' CSV HEADER;
 ## 🔗 Repository
 
 ```bash
-git clone https://github.com/AcunSoftware/PDKS_WE_WEB.git
+git clone https://github.com/serkanhancioglu/PDKS_WE_WEB.git
 ```
 
 ---
