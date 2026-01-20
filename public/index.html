@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MikroPer PDKS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">MikroPer PDKS</h1>
+                    <p class="text-gray-600">Personel Devam Kontrol Sistemi</p>
+                </div>
+                <div id="status" class="text-sm text-gray-500">Bağlantı kontrol ediliyor...</div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-blue-100 rounded-full">
+                        <i data-lucide="users" class="w-6 h-6 text-blue-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">Toplam Personel</p>
+                        <p id="total-personel" class="text-2xl font-bold text-gray-800">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-green-100 rounded-full">
+                        <i data-lucide="user-check" class="w-6 h-6 text-green-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">Bugün Gelen</p>
+                        <p id="today-present" class="text-2xl font-bold text-gray-800">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-yellow-100 rounded-full">
+                        <i data-lucide="clock" class="w-6 h-6 text-yellow-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">Geç Gelen</p>
+                        <p id="late" class="text-2xl font-bold text-gray-800">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-red-100 rounded-full">
+                        <i data-lucide="user-x" class="w-6 h-6 text-red-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-500">Gelmeyen</p>
+                        <p id="absent" class="text-2xl font-bold text-gray-800">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Hızlı Erişim</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <a href="/api/hareketler" class="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <i data-lucide="list" class="w-5 h-5 text-gray-600 mb-2"></i>
+                    <p class="font-medium text-gray-800">Hareketler</p>
+                </a>
+                <a href="/api/gec-gelenler" class="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <i data-lucide="clock" class="w-5 h-5 text-yellow-600 mb-2"></i>
+                    <p class="font-medium text-gray-800">Geç Gelenler</p>
+                </a>
+                <a href="/api/fazla-mesai" class="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <i data-lucide="timer" class="w-5 h-5 text-blue-600 mb-2"></i>
+                    <p class="font-medium text-gray-800">Fazla Mesai</p>
+                </a>
+                <a href="/api/vardiyalar" class="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <i data-lucide="calendar" class="w-5 h-5 text-green-600 mb-2"></i>
+                    <p class="font-medium text-gray-800">Vardiyalar</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // Bağlantı testi
+        fetch('/api/test')
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'connected') {
+                    document.getElementById('status').innerHTML = 
+                        '<span class="text-green-600">✓ Bağlı</span> - ' + data.hareket_count + ' hareket';
+                } else {
+                    document.getElementById('status').innerHTML = 
+                        '<span class="text-red-600">✗ Bağlantı hatası</span>';
+                }
+            })
+            .catch(() => {
+                document.getElementById('status').innerHTML = 
+                    '<span class="text-red-600">✗ API erişilemiyor</span>';
+            });
+
+        // İstatistikleri al
+        fetch('/api/stats')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('total-personel').textContent = data.total_personel || 0;
+                document.getElementById('today-present').textContent = data.today_present || 0;
+                document.getElementById('late').textContent = data.late || 0;
+                document.getElementById('absent').textContent = data.absent || 0;
+            });
+    </script>
+</body>
+</html>
