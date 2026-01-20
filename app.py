@@ -54,11 +54,13 @@ def query_db(sql, params=None):
 from routes_hareketler import register_hareketler_routes
 from routes_mesai import register_mesai_routes
 from routes_vardiya import register_vardiya_routes
+from routes_raporlar import register_rapor_routes
 
 # Route'ları kaydet
 register_hareketler_routes(app, query_db, SCHEMA)
 register_mesai_routes(app, query_db, SCHEMA)
 register_vardiya_routes(app, query_db, SCHEMA)
+register_rapor_routes(app, query_db, SCHEMA)
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():

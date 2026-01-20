@@ -34,3 +34,6 @@ uploads/
 dist/
 build/
 *.egg-info/
+
+# Kaynaklar (PHP referans dosyaları)
+kaynaklar/

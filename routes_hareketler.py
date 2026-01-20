@@ -132,15 +132,17 @@ def register_hareketler_routes(app, query_db, SCHEMA):
                     })
         return jsonify(erken_cikanlar)
 
-    @app.route('/api/devamsizlik', methods=['GET'])
-    def get_devamsizlik():
-        """03 - Devamsizlik Raporu"""
-        return jsonify([])
-
     @app.route('/api/personel', methods=['GET'])
     def get_personel():
         """Personel listesi"""
-        return jsonify([])
+        result = query_db(f'''
+            SELECT id, kartno, sicilno, adi, soyadi, hesapgrupkodu,
+                   TO_CHAR(isegiris, 'DD.MM.YYYY') as ise_giris
+            FROM {SCHEMA}.personel
+            WHERE isegiris IS NOT NULL AND (isecikis IS NULL)
+            ORDER BY adi, soyadi
+        ''')
+        return jsonify(result or [])
 
     @app.route('/api/icerdekiler', methods=['GET'])
     def get_icerdekiler():
